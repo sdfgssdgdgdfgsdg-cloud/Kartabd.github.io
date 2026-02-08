@@ -63,12 +63,14 @@
         input:checked + .slider { background-color: var(--army-red); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* КНОПКИ */
+        /* КНОПКИ С SVG */
         .tool-btn { 
             width: 100%; padding: 12px; background: #151515; border: 1px solid #333; 
             color: #888; margin-bottom: 8px; cursor: pointer; border-radius: 4px; 
-            display: flex; align-items: center; gap: 10px; font-size: 13px; 
+            display: flex; align-items: center; gap: 12px; font-size: 13px; transition: 0.2s;
         }
+        .tool-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+        .tool-btn:hover { background: #1a1a1a; color: #fff; }
         .tool-btn.active { border-color: var(--khaki); color: #fff; background: var(--active-bg); }
         .tool-btn.danger { color: #ff4444; border-color: #400; justify-content: center; margin-top: 15px; }
 
@@ -119,17 +121,34 @@
             <span class="switch-label">Границы объектов</span>
             <label class="switch"><input type="checkbox" id="border-switch" checked onchange="updateGeoStyles()"><span class="slider"></span></label>
         </div>
-        <button class="tool-btn" onclick="loadMapData()">🔄 Обновить JSON</button>
+        <button class="tool-btn" onclick="loadMapData()">
+            <svg viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Обновить данные
+        </button>
     </div>
 
     <div id="t-draw" class="tab-page">
         <h2>Инструменты</h2>
-        <button class="tool-btn active" id="tool-brush" onclick="setTool('brush')">🖌️ Кисть</button>
-        <button class="tool-btn" id="tool-arrow" onclick="setTool('arrow')">↗️ Стрелка</button>
-        <button class="tool-btn" id="tool-circle" onclick="setTool('circle')">⭕ Круг</button>
-        <button class="tool-btn" id="tool-rect" onclick="setTool('rect')">🟦 Прямоугольник</button>
+        <button class="tool-btn active" id="tool-brush" onclick="setTool('brush')">
+            <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>
+            Кисть
+        </button>
+        <button class="tool-btn" id="tool-arrow" onclick="setTool('arrow')">
+            <svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"></line><polyline points="12 5 19 5 19 12"></polyline></svg>
+            Стрелка
+        </button>
+        <button class="tool-btn" id="tool-circle" onclick="setTool('circle')">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg>
+            Круг
+        </button>
+        <button class="tool-btn" id="tool-rect" onclick="setTool('rect')">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+            Прямоугольник
+        </button>
+        
         <input type="color" id="m-color" value="#c2b280" style="width:100%; height:35px; border:1px solid #333; background:none; cursor:pointer; margin: 15px 0;">
-        <button class="tool-btn" id="draw-btn" onclick="togglePaintMode()" style="background:#222; color:#fff; justify-content:center; font-weight:bold;">ВКЛЮЧИТЬ РИСОВАНИЕ</button>
+        
+        <button class="tool-btn" id="draw-btn" onclick="togglePaintMode()" style="background:#222; color:#fff; justify-content:center; font-weight:bold;">ВКЛЮЧИТЬ РЕЖИМ</button>
         <button class="tool-btn danger" onclick="clearCanvas()">Удалить всё</button>
     </div>
 
@@ -178,7 +197,6 @@
                     icon: L.divIcon({ className: '', html: '<div class="pulsating-dot"></div>', iconSize: [12,12], iconAnchor: [6,6] }) 
                 }),
                 onEachFeature: (f, l) => {
-                    // Лэйбл появляется ТОЛЬКО у точек
                     if(f.properties.name && f.geometry.type === 'Point') {
                         l.on('click', (e) => {
                             L.DomEvent.stopPropagation(e);
@@ -203,7 +221,6 @@
 
     function updateGeoStyles() { if(geoJsonLayer) geoJsonLayer.setStyle(getFeatureStyle); }
 
-    // --- РИСОВАЛКА ---
     const canvas = document.getElementById('paint-canvas'), ctx = canvas.getContext('2d');
     let isEnabled = false, isDrawing = false, currentTool = 'brush', snapshot, startX, startY;
 
@@ -268,4 +285,5 @@
     loadMapData();
 </script>
 </body>
-</html>ы
+</html>
+
