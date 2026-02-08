@@ -94,7 +94,7 @@
     </div>
     <div id="info" class="tab-page">
         <div class="header-title">Инфо</div>
-        <p style="font-size: 13px;"><b>PolitMap v1.6</b><br><br>Тактический терминал с полной поддержкой сенсорного управления.</p>
+        <p style="font-size: 13px;"><b>PolitMap v1.7 FINAL</b><br><br>Если не рисует на мобильном: обновите страницу 3 раза или очистите кэш.</p>
     </div>
 </div>
 
@@ -140,10 +140,17 @@
     function togglePaintMode() {
         isPaintingMode = !isPaintingMode;
         const btn = document.getElementById('toggle-paint-btn');
-        btn.innerText = isPaintingMode ? "ВЫКЛЮЧИТЬ РИСОВАНИЕ" : "ВКЛЮЧИТЬ РИСОВАНИЕ";
-        canvas.classList.toggle('active', isPaintingMode);
-        if (isPaintingMode) { map.dragging.disable(); map.touchZoom.disable(); }
-        else { map.dragging.enable(); map.touchZoom.enable(); }
+        if (isPaintingMode) {
+            btn.innerText = "ВЫКЛЮЧИТЬ РИСОВАНИЕ";
+            btn.style.background = "#8b0000"; // Кнопка станет красной!
+            canvas.classList.add('active');
+            map.dragging.disable(); map.touchZoom.disable();
+        } else {
+            btn.innerText = "ВКЛЮЧИТЬ РИСОВАНИЕ";
+            btn.style.background = "#222";
+            canvas.classList.remove('active');
+            map.dragging.enable(); map.touchZoom.enable();
+        }
     }
 
     function setTool(t, btn) {
