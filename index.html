@@ -108,22 +108,52 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     // 1. КАРТА И СЛОИ
-    const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([48.3, 37.5], 7);
-    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-    const osmLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png');
+// 1. Глобальные переменные слоев (вынеси их в начало скрипта)
+const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+const esriSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+const osmLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png');
 
-    function toggleLayers() {
-        if(document.getElementById('sat-switch').checked) {
-            if(map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
-            esriSatellite.addTo(map); osmLabels.addTo(map);
+// 2. Исправленная функция переключения карты
+function toggleLayers() {
+    const isSat = document.getElementById('sat-switch').checked;
+    
+    if(isSat) {
+        // Включаем спутник
+        if(map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
+        esriSatellite.addTo(map);
+        osmLabels.addTo(map);
+    } else {
+        // Возвращаем темную карту
+        if(map.hasLayer(esriSatellite)) map.removeLayer(esriSatellite);
+        if(map.hasLayer(osmLabels)) map.removeLayer(osmLabels);
+        darkTiles.addTo(map);
+    }
+}
+
+// 3. Исправленная функция для JSON контуров
+function updateGeoVisibility() {
+    const isVisible = document.getElementById('border-switch').checked;
+    
+    // Проверяем, существует ли слой вообще перед манипуляциями
+    if (geoJsonLayer) {
+        if (isVisible) {
+            if (!map.hasLayer(geoJsonLayer)) geoJsonLayer.addTo(map);
         } else {
-            if(map.hasLayer(esriSatellite)) map.removeLayer(esriSatellite);
-            if(map.hasLayer(osmLabels)) map.removeLayer(osmLabels);
-            darkTiles.addTo(map);
+            if (map.hasLayer(geoJsonLayer)) map.removeLayer(geoJsonLayer);
         }
     }
+}
 
+// 4. Добавь это в функцию toggleTab, чтобы карта не "ломалась" при сворачивании
+function toggleTab(id) {
+    const sidebar = document.getElementById('sidebar');
+    // ... твой код переключения классов ...
+    
+    // Важно: пересчитываем размер карты после анимации (300мс)
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 300);
+}
     // 2. JSON ОБЪЕКТЫ
     let geoJsonLayer = null;
     async function loadMapData() {
@@ -217,3 +247,4 @@
 </script>
 </body>
 </html>
+
