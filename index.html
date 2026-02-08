@@ -39,7 +39,7 @@
         input:checked + .slider { background-color: var(--army-red); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-        /* ИКОНКИ */
+        /* ИКОНКИ SVG */
         .tool-btn { width: 100%; padding: 12px; background: #151515; border: 1px solid #333; color: #888; margin-bottom: 8px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 12px; font-size: 13px; transition: 0.2s; }
         .tool-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
         .tool-btn.active { border-color: var(--khaki); color: #fff; background: var(--active-bg); }
@@ -59,7 +59,7 @@
             100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(255, 59, 59, 0); }
         }
 
-        .custom-tooltip { background: #000 !important; border: 1px solid var(--khaki) !important; color: #fff !important; font-weight: bold; }
+        .custom-tooltip { background: #000 !important; border: 1px solid var(--khaki) !important; color: #fff !important; font-weight: bold; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -74,25 +74,25 @@
     <div id="t-map" class="tab-page active">
         <h2>Карта</h2>
         <div class="switch-group">
-            <span class="switch-label">Спутник (с границами)</span>
+            <span class="switch-label">Спутник + Границы</span>
             <label class="switch"><input type="checkbox" id="sat-switch" onchange="toggleSat()"><span class="slider"></span></label>
         </div>
         <div class="switch-group">
-            <span class="switch-label">Границы объектов JSON</span>
+            <span class="switch-label">Границы полигонов</span>
             <label class="switch"><input type="checkbox" id="border-switch" checked onchange="updateGeoStyles()"><span class="slider"></span></label>
         </div>
-        <button class="tool-btn" onclick="loadMapData()">🔄 Обновить JSON</button>
+        <button class="tool-btn" onclick="loadMapData()">🔄 Обновить данные</button>
     </div>
 
     <div id="t-draw" class="tab-page">
-        <h2>Рисование</h2>
+        <h2>Тактическое рисование</h2>
         <button class="tool-btn active" id="tool-brush" onclick="setTool('brush')"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg> Кисть</button>
         <button class="tool-btn" id="tool-arrow" onclick="setTool('arrow')"><svg viewBox="0 0 24 24"><line x1="5" y1="19" x2="19" y2="5"></line><polyline points="12 5 19 5 19 12"></polyline></svg> Стрелка</button>
         <button class="tool-btn" id="tool-circle" onclick="setTool('circle')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle></svg> Круг</button>
-        <button class="tool-btn" id="tool-rect" onclick="setTool('rect')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg> Квадрат</button>
+        <button class="tool-btn" id="tool-rect" onclick="setTool('rect')"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg> Прямоугольник</button>
         <input type="color" id="m-color" value="#c2b280" style="width:100%; height:35px; border:1px solid #333; background:none; cursor:pointer; margin: 15px 0;">
-        <button class="tool-btn" id="draw-btn" onclick="togglePaintMode()" style="justify-content:center; background:#222; color:#fff;">ВКЛЮЧИТЬ РЕЖИМ</button>
-        <button class="tool-btn danger" onclick="clearCanvas()">Удалить всё</button>
+        <button class="tool-btn" id="draw-btn" onclick="togglePaintMode()" style="justify-content:center; background:#222; color:#fff; font-weight:bold;">ВКЛЮЧИТЬ РЕЖИМ</button>
+        <button class="tool-btn danger" onclick="clearCanvas()">Удалить чертежи</button>
     </div>
 </div>
 
@@ -105,21 +105,21 @@
 <script>
     const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([48.3, 37.5], 7);
     
-    // СЛОИ КАРТЫ
-    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    const satTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-    const satBorders = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png'); // Границы стран и городов для спутника
+    // БАЗОВЫЕ СЛОИ
+    const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    
+    // ГИБРИДНЫЙ СЛОЙ (Спутник + Границы + Названия)
+    // Используем Google Hybrid для гарантированных границ
+    const hybridLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}');
 
     function toggleSat() {
         const isSat = document.getElementById('sat-switch').checked;
         if(isSat) {
-            map.removeLayer(darkTiles);
-            satTiles.addTo(map);
-            satBorders.addTo(map); // ВКЛЮЧАЕМ ГРАНИЦЫ СТРАН
+            map.removeLayer(darkLayer);
+            hybridLayer.addTo(map);
         } else {
-            map.removeLayer(satTiles);
-            map.removeLayer(satBorders);
-            darkTiles.addTo(map);
+            map.removeLayer(hybridLayer);
+            darkLayer.addTo(map);
         }
     }
 
@@ -142,20 +142,22 @@
                     icon: L.divIcon({ className: '', html: '<div class="pulsating-dot"></div>', iconSize: [12,12], iconAnchor: [6,6] }) 
                 }),
                 onEachFeature: (f, l) => {
-                    // ЛОГИКА: Только точки и только при нажатии
-                    if(f.properties.name && f.geometry.type === 'Point') {
+                    // ЛОГИКА: Только Point и только при клике. Никакого наведения.
+                    if(f.geometry.type === 'Point' && f.properties.name) {
                         l.on('click', (e) => {
                             L.DomEvent.stopPropagation(e);
+                            // Создаем тултип "на лету" только при нажатии
                             l.bindTooltip(f.properties.name, { 
                                 className: 'custom-tooltip', 
                                 direction: 'top', 
-                                offset: [0, -10] 
+                                offset: [0, -10],
+                                permanent: false
                             }).openTooltip();
                         });
                     }
                 }
             }).addTo(map);
-        } catch(e) {}
+        } catch(e) { console.log("JSON Load Error"); }
     }
 
     function getFeatureStyle(f) {
@@ -169,7 +171,7 @@
     }
     function updateGeoStyles() { if(geoJsonLayer) geoJsonLayer.setStyle(getFeatureStyle); }
 
-    // РИСОВАЛКА
+    // ДВИЖОК РИСОВАНИЯ (ПОЛНЫЙ)
     const canvas = document.getElementById('paint-canvas'), ctx = canvas.getContext('2d');
     let isEnabled = false, isDrawing = false, currentTool = 'brush', snapshot, startX, startY;
 
