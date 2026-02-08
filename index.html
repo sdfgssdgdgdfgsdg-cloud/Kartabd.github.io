@@ -16,29 +16,34 @@
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
         body { margin: 0; background: #000; font-family: 'Segoe UI', sans-serif; display: flex; height: 100vh; overflow: hidden; color: #ccc; }
 
-        /* ИНТЕРФЕЙС - ПОВЕРХ ВСЕГО */
-        #tab-bar { width: 60px; background: #111; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; z-index: 10001; }
-        #sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); z-index: 10000; display: flex; flex-direction: column; }
+        /* ТАБ БАР */
+        #tab-bar { width: 60px; min-width: 60px; background: #111; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; padding-top: 20px; z-index: 10001; }
         
-        .tab-btn { width: 44px; height: 44px; color: #444; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; border-radius: 8px; }
+        /* САЙДБАР С АККОРДЕОНОМ */
+        #sidebar { 
+            width: 300px; background: var(--sidebar-bg); border-right: 1px solid var(--border-color); 
+            z-index: 10000; display: flex; flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #sidebar.collapsed { width: 0; min-width: 0; border-right: none; transform: translateX(-10px); opacity: 0; pointer-events: none; }
+
+        .tab-btn { width: 44px; height: 44px; color: #444; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; border-radius: 8px; transition: 0.2s; }
         .tab-btn.active { color: var(--khaki); background: #1a1e16; border: 1px solid #3b4634; }
-        .tab-page { display: none; padding: 25px 20px; height: 100%; overflow-y: auto; }
+        .tab-btn svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        .tab-page { display: none; padding: 25px 20px; height: 100%; overflow-y: auto; min-width: 300px; }
         .tab-page.active { display: block; }
 
-        .tool-btn { width: 100%; padding: 12px; background: #151515; border: 1px solid #333; color: #888; margin-bottom: 8px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .tool-btn { width: 100%; padding: 12px; background: #151515; border: 1px solid #333; color: #888; margin-bottom: 8px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .tool-btn:active { transform: scale(0.98); }
         .tool-btn.active { border-color: var(--khaki); color: #fff; background: #1a1e16; }
+        .tool-btn.donate { background: #b18e3d; color: #000; border: none; justify-content: center; margin-top: 20px; font-size: 14px; }
 
         /* КАРТА */
         #map-wrap { position: relative; flex-grow: 1; height: 100vh; z-index: 1; }
         #map { height: 100%; width: 100%; z-index: 10; background: #000; }
-        
-        /* ХОЛСТ РИСОВАНИЯ */
-        #paint-canvas { 
-            position: absolute; top: 0; left: 0; z-index: 5000; 
-            width: 100%; height: 100%; touch-action: none; 
-            pointer-events: none; /* Важно: пропускает клики на кнопки и карту */
-        }
-        #paint-canvas.active { pointer-events: auto; cursor: crosshair; }
+        #paint-canvas { position: absolute; top: 0; left: 0; z-index: 5000; width: 100%; height: 100%; touch-action: none; pointer-events: none; }
+        #paint-canvas.active { pointer-events: auto; }
 
         /* ТОЧКИ */
         .pulsating-dot { width: 14px; height: 14px; background: #ff3b3b; border-radius: 50%; border: 2px solid #fff; animation: pulse 1.5s infinite; }
@@ -62,8 +67,15 @@
 <body>
 
 <div id="tab-bar">
-    <div class="tab-btn active" id="b-map" onclick="setTab('map')"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg></div>
-    <div class="tab-btn" id="b-draw" onclick="setTab('draw')"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg></div>
+    <div class="tab-btn active" id="btn-map" onclick="toggleTab('map')">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+    </div>
+    <div class="tab-btn" id="btn-draw" onclick="toggleTab('draw')">
+        <svg viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+    </div>
+    <div class="tab-btn" id="btn-don" onclick="toggleTab('don')">
+        <svg viewBox="0 0 24 24"><path d="M20 12l-8 8-8-8M12 4v16"></path><circle cx="12" cy="12" r="10" stroke-opacity="0.2"></circle><path d="M12 7v10M9 10l3-3 3 3"></path></svg>
+    </div>
 </div>
 
 <div id="sidebar">
@@ -73,15 +85,21 @@
         <div class="switch-group"><span>Объекты JSON</span><label class="switch"><input type="checkbox" id="border-switch" checked onchange="updateGeo()"><span class="slider"></span></label></div>
         <button class="tool-btn" onclick="loadMapData()">🔄 ОБНОВИТЬ КАРТУ</button>
     </div>
+
     <div id="t-draw" class="tab-page">
-        <h2 style="font-size:11px; letter-spacing:2px; color:#555; margin-bottom:20px;">РИСОВАНИЕ</h2>
+        <h2 style="font-size:11px; letter-spacing:2px; color:#555; margin-bottom:20px;">ИНСТРУМЕНТЫ</h2>
         <button class="tool-btn active" id="tool-brush" onclick="setTool('brush')">КИСТЬ</button>
         <button class="tool-btn" id="tool-arrow" onclick="setTool('arrow')">СТРЕЛКА</button>
         <button class="tool-btn" id="tool-circle" onclick="setTool('circle')">КРУГ</button>
         <button class="tool-btn" id="tool-rect" onclick="setTool('rect')">КВАДРАТ</button>
         <input type="color" id="m-color" value="#c2b280" style="width:100%; height:40px; border:1px solid #333; background:none; margin:10px 0;">
-        <button class="tool-btn" id="draw-btn" onclick="togglePaint()" style="background:var(--army-red); color:#fff; border:none;">ВКЛЮЧИТЬ РЕЖИМ</button>
-        <button class="tool-btn" onclick="clearCanvas()" style="margin-top:10px;">ОЧИСТИТЬ</button>
+        <button class="tool-btn" id="draw-btn" onclick="togglePaint()" style="background:var(--army-red); color:#fff; border:none; justify-content:center;">ВКЛЮЧИТЬ РЕЖИМ</button>
+    </div>
+
+    <div id="t-don" class="tab-page">
+        <h2 style="font-size:11px; letter-spacing:2px; color:#555; margin-bottom:20px;">ПОДДЕРЖКА</h2>
+        <p style="font-size: 13px; line-height: 1.6; color: #888;">Если вам нравится проект, вы можете поддержать автора для развития новых функций и улучшения тактического терминала.</p>
+        <button class="tool-btn donate" onclick="window.open('https://your-link.com', '_blank')">🪙 ПОДДЕРЖАТЬ ПРОЕКТ</button>
     </div>
 </div>
 
@@ -101,21 +119,31 @@
 
     function toggleLayers() {
         if(document.getElementById('sat-switch').checked) {
-            map.removeLayer(darkTiles);
-            esriSatellite.addTo(map);
-            osmLabels.addTo(map);
+            map.removeLayer(darkTiles); esriSatellite.addTo(map); osmLabels.addTo(map);
         } else {
-            map.removeLayer(esriSatellite);
-            map.removeLayer(osmLabels);
-            darkTiles.addTo(map);
+            map.removeLayer(esriSatellite); map.removeLayer(osmLabels); darkTiles.addTo(map);
         }
     }
 
-    function setTab(id) {
-        document.querySelectorAll('.tab-btn, .tab-page').forEach(el => el.classList.remove('active'));
-        document.getElementById('b-' + id).classList.add('active');
-        document.getElementById('t-' + id).classList.add('active');
-        setTimeout(() => map.invalidateSize(), 100);
+    // ЛОГИКА ВКЛАДОК (СВОРАЧИВАНИЕ)
+    let currentActiveTab = 'map';
+    function toggleTab(id) {
+        const sidebar = document.getElementById('sidebar');
+        const btn = document.getElementById('btn-' + id);
+        
+        if (currentActiveTab === id && !sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+            btn.classList.remove('active');
+        } else {
+            sidebar.classList.remove('collapsed');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+            
+            btn.classList.add('active');
+            document.getElementById('t-' + id).classList.add('active');
+            currentActiveTab = id;
+        }
+        setTimeout(() => map.invalidateSize(), 300);
     }
 
     // JSON ДАННЫЕ
@@ -127,10 +155,8 @@
             if(geoJsonLayer) map.removeLayer(geoJsonLayer);
             geoJsonLayer = L.geoJSON(data, {
                 style: (f) => ({
-                    fillColor: f.properties.color || "#8b0000",
-                    fillOpacity: 0.4,
-                    color: document.getElementById('border-switch').checked ? (f.properties.color || "#8b0000") : "transparent",
-                    weight: 2
+                    fillColor: f.properties.color || "#8b0000", fillOpacity: 0.4,
+                    color: document.getElementById('border-switch').checked ? (f.properties.color || "#8b0000") : "transparent", weight: 2
                 }),
                 pointToLayer: (f, ll) => L.marker(ll, { 
                     icon: L.divIcon({ className: '', html: '<div class="pulsating-dot"></div>', iconSize: [14,14], iconAnchor: [7,7] }) 
@@ -148,7 +174,7 @@
     }
     function updateGeo() { if(geoJsonLayer) geoJsonLayer.setStyle(() => ({ color: document.getElementById('border-switch').checked ? "inherit" : "transparent" })); }
 
-    // РИСОВАЛКА (УНИВЕРСАЛЬНАЯ ДЛЯ ПК И МОБИЛОК)
+    // РИСОВАЛКА
     const canvas = document.getElementById('paint-canvas'), ctx = canvas.getContext('2d');
     let isDrawing = false, currentTool = 'brush', snapshot, startX, startY;
 
@@ -158,7 +184,6 @@
     function togglePaint() {
         const active = canvas.classList.toggle('active');
         document.getElementById('draw-btn').innerText = active ? "ВЫКЛЮЧИТЬ" : "ВКЛЮЧИТЬ РЕЖИМ";
-        document.getElementById('draw-btn').style.background = active ? "#333" : "var(--army-red)";
         if(active) { map.dragging.disable(); map.touchZoom.disable(); } 
         else { map.dragging.enable(); map.touchZoom.enable(); }
     }
@@ -174,11 +199,10 @@
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
 
-    // Используем Pointer Events (поддерживают и мышь, и тач)
     canvas.addEventListener('pointerdown', (e) => {
+        if(!canvas.classList.contains('active')) return;
         isDrawing = true;
-        const p = getPos(e);
-        startX = p.x; startY = p.y;
+        const p = getPos(e); startX = p.x; startY = p.y;
         ctx.strokeStyle = document.getElementById('m-color').value;
         ctx.lineWidth = 3; ctx.lineCap = 'round';
         snapshot = ctx.getImageData(0,0, canvas.width, canvas.height);
@@ -207,9 +231,9 @@
     });
 
     window.addEventListener('pointerup', () => isDrawing = false);
-    function clearCanvas() { ctx.clearRect(0,0, canvas.width, canvas.height); }
 
     loadMapData();
 </script>
 </body>
 </html>
+
