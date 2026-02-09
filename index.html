@@ -154,56 +154,84 @@
     }
 
     // 2. ЗАГРУЗКА ДАННЫХ (ТОЧКИ + ФРОНТ)
-    let geoJsonLayer = null;
+   // --- 1. ОБЪЕКТЫ (ТОЧКИ С ЛЕЙБЛАМИ ПО КЛИКУ + ФРОНТ) ---
+let geoLayer = null;
 
-   // --- ЗАМЕНИ ЭТУ ФУНКЦИЮ В СКРИПТЕ ---
-async function loadMapData() {
+async function loadMap() {
     try {
-        const response = await fetch('data/map.json?v=' + Date.now());
-        if (!response.ok) return;
-        const data = await response.json();
+        const res = await fetch('data/map.json?v=' + Date.now());
+        const data = await res.json();
+        if(geoLayer) map.removeLayer(geoLayer);
         
-        if(geoJsonLayer) map.removeLayer(geoJsonLayer);
-        
-        geoJsonLayer = L.geoJSON(data, {
-            // Стиль для линий фронта (никаких лейблов здесь нет)
-            style: (f) => ({
-                color: f.properties.color || "#8b0000",
-                weight: 3,
-                fillColor: f.properties.color || "#8b0000",
-                fillOpacity: 0.2,
-                interactive: false // ДЕЛАЕМ ФРОНТ НЕКЛИКАБЕЛЬНЫМ
+        geoLayer = L.geoJSON(data, {
+            // Стиль для линий фронта (не кликабельны, нет лейблов)
+            style: (f) => ({ 
+                color: f.properties.color || "#8b0000", 
+                weight: 3, 
+                fillOpacity: 0.2, 
+                interactive: false 
             }),
-            
-            // Логика только для точек
             pointToLayer: (f, ll) => {
-                const marker = L.marker(ll, { 
+                const m = L.marker(ll, { 
                     icon: L.divIcon({ 
                         className: '', 
                         html: '<div class="dot-container"><div class="pulsating-dot"></div></div>', 
-                        iconSize: [20,20], 
-                        iconAnchor: [10,10] 
+                        iconSize: [24,24], iconAnchor: [12,12] 
                     }) 
                 });
-                
-                // ЛЕЙБЛ ТОЛЬКО У ТОЧЕК И ТОЛЬКО ПО КЛИКУ
-                marker.on('click', function(e) {
+
+                // ЛЕЙБЛ ПОЯВЛЯЕТСЯ ТОЛЬКО У ТОЧЕК И ТОЛЬКО ПО КЛИКУ
+                m.on('click', (e) => {
                     L.DomEvent.stopPropagation(e);
-                    if (this.getTooltip()) {
-                        this.unbindTooltip();
+                    if (m.getTooltip()) {
+                        m.unbindTooltip();
                     } else {
-                        this.bindTooltip(f.properties.name || "Объект", { 
+                        m.bindTooltip(f.properties.name || "Цель", { 
                             className: 'custom-tooltip', 
                             direction: 'top', 
                             offset: [0, -10] 
                         }).openTooltip();
                     }
                 });
-                
-                return marker;
+                return m;
             }
         });
-        
+        updateGeo();
+    } catch(e) { console.error("Ошибка JSON:", e); }
+}
+
+// --- 2. ИСПРАВЛЕННАЯ РИСОВАЛКА + ОЧИСТКА ---
+const canvas = document.getElementById('paint-canvas');
+const ctx = canvas.getContext('2d');
+
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function togglePaint() {
+    const active = canvas.classList.toggle('active');
+    document.getElementById('draw-btn').innerText = active ? "ВЫКЛЮЧИТЬ" : "ВКЛЮЧИТЬ РЕЖИМ";
+    // Блокируем карту только когда рисуем
+    if(active) {
+        map.dragging.disable();
+        map.touchZoom.disable();
+    } else {
+        map.dragging.enable();
+        map.touchZoom.enable();
+    }
+}
+
+// --- 3. В CSS ОБЯЗАТЕЛЬНО ОБНОВИ ЭТОТ БЛОК ДЛЯ ЦЕНТРОВКИ ---
+/*
+.dot-container { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
+.pulsating-dot { width: 8px; height: 8px; background: #ff4444; border-radius: 50%; position: relative; box-shadow: 0 0 10px #ff4444; }
+.pulsating-dot::after {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 8px; height: 8px;
+    margin: -4px 0 0 -4px; border-radius: 50%; border: 2px solid #ff4444;
+    animation: pulsate 1.8s ease-out infinite; box-sizing: border-box;
+}
+@keyframes pulsate { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(5); opacity: 0; } }
+*/
         updateGeoVisibility();
     } catch(e) { console.warn("Данные не подгружены"); }
 }
@@ -282,6 +310,7 @@ async function loadMapData() {
 </script>
 </body>
 </html>
+
 
 
 
