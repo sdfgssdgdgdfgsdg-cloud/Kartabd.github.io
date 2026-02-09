@@ -172,9 +172,9 @@
                 style: (f) => {
                     if (f.geometry.type !== 'Point') {
                         // Создаем заливку (всегда видна)
-                        L.geoJSON(f, { style: { color: f.properties.color || "#8b0000", weight: 0, fillOpacity: 0.2, interactive: false } }).addTo(fillGroup);
+                        L.geoJSON(f, { style: { color: f.properties.color || "#DC143C", weight: 0, fillOpacity: 0.2, interactive: false } }).addTo(fillGroup);
                         // Создаем границу (отключаемая)
-                        L.geoJSON(f, { style: { color: "#ff4444", weight: 3, fillOpacity: 0, interactive: false } }).addTo(borderGroup);
+                        L.geoJSON(f, { style: { color: "#A52A2A", weight: 3, fillOpacity: 0, interactive: false } }).addTo(borderGroup);
                     }
                 }
             });
@@ -263,3 +263,4 @@
 </script>
 </body>
 </html>
+
