@@ -12,13 +12,14 @@
 
         /* ТАБ-БАР */
         #tab-bar { width: 60px; min-width: 60px; background: #111; border-right: 1px solid #222; display: flex; flex-direction: column; align-items: center; padding-top: 20px; z-index: 10005; }
-        .tab-btn { width: 44px; height: 44px; color: #444; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; border-radius: 8px; transition: 0.2s; }
+        .tab-btn { width: 44px; height: 44px; color: #444; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; border-radius: 8px; transition: 0.2s; pointer-events: auto; }
         .tab-btn.active { color: var(--khaki); background: #1a1e16; border: 1px solid #3b4634; }
         .tab-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
 
         /* САЙДБАР */
-        #sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid #222; z-index: 10004; transition: 0.3s; position: relative; }
-        .tab-page { display: none; padding: 20px; height: 100%; overflow-y: auto; }
+        #sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid #222; z-index: 10004; transition: 0.3s; position: relative; overflow: hidden; }
+        #sidebar.collapsed { width: 0; border-right: none; }
+        .tab-page { display: none; padding: 20px; width: 300px; height: 100%; overflow-y: auto; }
         .tab-page.active { display: block; }
 
         /* ИНТЕРФЕЙС */
@@ -101,7 +102,7 @@
 
     <div id="t-info" class="tab-page">
         <h2 style="font-size: 11px; letter-spacing: 2px; margin-bottom: 15px;">ИНФО</h2>
-        <p style="font-size: 13px; color: #888;">Цвета зон подтягиваются автоматически из вашего файла JSON.</p>
+        <p style="font-size: 13px; color: #888;">Нажмите повторно на активную вкладку, чтобы скрыть меню.</p>
     </div>
 
     <div id="t-don" class="tab-page">
@@ -140,39 +141,24 @@
         try {
             const res = await fetch('data/map.json?v=' + Date.now());
             const data = await res.json();
-            
-            fillGroup.clearLayers();
-            borderGroup.clearLayers();
-            pointsGroup.clearLayers();
+            fillGroup.clearLayers(); borderGroup.clearLayers(); pointsGroup.clearLayers();
 
             L.geoJSON(data, {
                 pointToLayer: (f, ll) => {
-                    const m = L.marker(ll, { 
-                        icon: L.divIcon({ className: '', html: '<div class="dot-container"><div class="pulsating-dot"></div></div>', iconSize: [24,24], iconAnchor: [12,12] }) 
-                    });
+                    const m = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="dot-container"><div class="pulsating-dot"></div></div>', iconSize: [24,24], iconAnchor: [12,12] }) });
                     m.bindTooltip(f.properties.name || "Объект", { className: 'custom-tooltip', direction: 'top', offset: [0, -10] });
-                    m.addTo(pointsGroup);
-                    return m;
+                    m.addTo(pointsGroup); return m;
                 },
                 style: (f) => {
                     if (f.geometry.type !== 'Point') {
-                        // ПОЛУЧАЕМ ЦВЕТ ИЗ JSON (Google My Maps обычно использует stroke или fill)
                         const rawColor = f.properties.fill || f.properties.stroke || f.properties.color || "#8b0000";
-
-                        // Создаем заливку
-                        L.geoJSON(f, { 
-                            style: { color: rawColor, weight: 0, fillOpacity: 0.25, interactive: false } 
-                        }).addTo(fillGroup);
-
-                        // Создаем границу
-                        L.geoJSON(f, { 
-                            style: { color: rawColor, weight: 3, fillOpacity: 0, interactive: false } 
-                        }).addTo(borderGroup);
+                        L.geoJSON(f, { style: { color: rawColor, weight: 0, fillOpacity: 0.25, interactive: false } }).addTo(fillGroup);
+                        L.geoJSON(f, { style: { color: rawColor, weight: 3, fillOpacity: 0, interactive: false } }).addTo(borderGroup);
                     }
                 }
             });
             updateGeo();
-        } catch(e) { console.log("JSON Load Error"); }
+        } catch(e) { console.log("JSON Error"); }
     }
 
     function updateGeo() {
@@ -180,10 +166,27 @@
         showBorder ? map.addLayer(borderGroup) : map.removeLayer(borderGroup);
     }
 
+    // НОВАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ТАБОВ
     function toggleTab(id) {
-        document.querySelectorAll('.tab-page, .tab-btn').forEach(el => el.classList.remove('active'));
-        document.getElementById('btn-' + id).classList.add('active');
-        document.getElementById('t-' + id).classList.add('active');
+        const sidebar = document.getElementById('sidebar');
+        const btn = document.getElementById('btn-' + id);
+        const page = document.getElementById('t-' + id);
+
+        // Если нажали на уже активную кнопку — скрываем сайдбар
+        if (btn.classList.contains('active') && !sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+            btn.classList.remove('active');
+        } else {
+            // Иначе открываем/переключаем
+            sidebar.classList.remove('collapsed');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+            
+            btn.classList.add('active');
+            page.classList.add('active');
+        }
+        
+        // Пересчитываем размер карты после анимации
         setTimeout(() => map.invalidateSize(), 300);
     }
 
@@ -200,6 +203,7 @@
         alert("Номер скопирован");
     }
 
+    // РИСОВАНИЕ
     const canvas = document.getElementById('paint-canvas'), ctx = canvas.getContext('2d');
     let drawing = false, currentTool = 'brush', snapshot, startX, startY;
 
@@ -254,4 +258,3 @@
 </script>
 </body>
 </html>
-
