@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>PolitMap Интерактивная карта</title>
+    <title>Tactical Terminal v3.0</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --army-red: #8b0000; --khaki: #c2b280; --sidebar-bg: #0d0d0d; }
@@ -12,17 +12,17 @@
 
         /* ТАБ-БАР */
         #tab-bar { width: 60px; min-width: 60px; background: #111; border-right: 1px solid #222; display: flex; flex-direction: column; align-items: center; padding-top: 20px; z-index: 10005; }
-        .tab-btn { width: 44px; height: 44px; color: #444; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; border-radius: 8px; transition: 0.2s; pointer-events: auto; }
+        .tab-btn { width: 44px; height: 44px; color: #444; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-bottom: 20px; border-radius: 8px; transition: 0.2s; }
         .tab-btn.active { color: var(--khaki); background: #1a1e16; border: 1px solid #3b4634; }
         .tab-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
 
         /* САЙДБАР */
-        #sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid #222; z-index: 10004; transition: 0.3s; position: relative; overflow: hidden; }
+        #sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid #222; z-index: 10004; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; }
         #sidebar.collapsed { width: 0; border-right: none; }
         .tab-page { display: none; padding: 20px; width: 300px; height: 100%; overflow-y: auto; }
         .tab-page.active { display: block; }
 
-        /* ИНТЕРФЕЙС */
+        /* ЭЛЕМЕНТЫ УПРАВЛЕНИЯ */
         .switch-group { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #151515; border-radius: 6px; margin-bottom: 8px; border: 1px solid #222; font-size: 13px; cursor: pointer; }
         .tool-btn { width: 100%; padding: 10px; background: #1a1a1a; border: 1px solid #333; color: #888; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 8px; text-transform: uppercase; font-size: 10px; }
         .tool-btn.active { border-color: var(--khaki); color: #fff; background: #1a1e16; }
@@ -45,7 +45,7 @@
         input:checked + .slider { background: #44ff44; }
         input:checked + .slider:before { transform: translateX(16px); }
 
-        /* ПУЛЬСАЦИЯ */
+        /* ТОЧКИ И ТУЛТИПЫ */
         .dot-container { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
         .pulsating-dot { width: 8px; height: 8px; background: #ff4444; border-radius: 50%; position: relative; box-shadow: 0 0 10px #ff4444; }
         .pulsating-dot::after {
@@ -54,7 +54,6 @@
             animation: pulsate 1.8s ease-out infinite; box-sizing: border-box;
         }
         @keyframes pulsate { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(5); opacity: 0; } }
-
         .custom-tooltip { background: #000 !important; border: 1px solid var(--khaki) !important; color: #fff !important; font-size: 11px; padding: 4px 8px; }
 
         .support-card { background: #111; border: 1px solid #222; padding: 15px; border-radius: 8px; text-align: center; }
@@ -72,13 +71,13 @@
 
 <div id="sidebar">
     <div id="t-map" class="tab-page active">
-        <h2 style="font-size: 11px; letter-spacing: 2px; margin-bottom: 15px;">КАРТА</h2>
+        <h2 style="font-size: 11px; letter-spacing: 2px; margin-bottom: 15px;">УПРАВЛЕНИЕ</h2>
         <div class="switch-group" onclick="toggleCheck('sat-in')">
-            <span>Спутник</span>
+            <span>Спутник + Границы (OSM)</span>
             <label class="switch"><input type="checkbox" id="sat-in" onchange="toggleLayers()"><span class="slider"></span></label>
         </div>
         <div class="switch-group" onclick="toggleCheck('obj-in')">
-            <span>Цветные границы фронта</span>
+            <span>Границы фронта</span>
             <label class="switch"><input type="checkbox" id="obj-in" checked onchange="updateGeo()"><span class="slider"></span></label>
         </div>
         <button class="tool-btn" onclick="loadMap()">🔄 Обновить данные</button>
@@ -102,13 +101,14 @@
 
     <div id="t-info" class="tab-page">
         <h2 style="font-size: 11px; letter-spacing: 2px; margin-bottom: 15px;">ИНФО</h2>
-        <p style="font-size: 13px; color: #888;">Этот сайт сделан на коленке, и то сайт создан не Бугазом, а нейронкой Gemini, сквозь пот и кровь получилось сделать что-то.</p>
+        <p style="font-size: 13px; color: #888;">Сайт сделан на коленке Бугазом с помощью нейронки</p>
     </div>
 
     <div id="t-don" class="tab-page">
         <h2 style="font-size: 11px; letter-spacing: 2px; margin-bottom: 15px;">ПОДДЕРЖКА БУГАЗА</h2>
         <div class="support-card">
-            <span class="card-number" id="card-val">2200 7005 0856 7400</span>
+            <span class="card-number" id="card-val">2200 0000 0000 0000</span>
+            <button class="tool-btn main-action" onclick="copyCard()">Копировать номер</button>
         </div>
     </div>
 </div>
@@ -120,9 +120,10 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // 1. СЛОИ
     const dark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
     const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-    const labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png');
+    const osmLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 });
     
     const map = L.map('map', { zoomControl: false, attributionControl: false, layers: [dark] }).setView([48.3, 37.5], 7);
 
@@ -130,25 +131,16 @@
     const borderGroup = L.layerGroup().addTo(map); 
     const pointsGroup = L.layerGroup().addTo(map); 
 
-  // 1. Добавь этот слой в начало, где объявлены dark и esri
-const osmLabels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-    zIndex: 1000 // Чтобы названия всегда были поверх всего
-});
-
-// 2. Обнови функцию переключения
-function toggleLayers() {
-    const isSat = document.getElementById('sat-in').checked;
-    if(isSat) { 
-        map.removeLayer(dark); 
-        map.addLayer(esri); 
-        map.addLayer(osmLabels); // Включаем границы и названия OSM
-    } else { 
-        map.removeLayer(esri); 
-        map.removeLayer(osmLabels); // Выключаем, так как в темной теме они свои
-        map.addLayer(dark); 
+    function toggleLayers() {
+        const isSat = document.getElementById('sat-in').checked;
+        if(isSat) { 
+            map.removeLayer(dark); map.addLayer(esri); map.addLayer(osmLabels); 
+        } else { 
+            map.removeLayer(esri); map.removeLayer(osmLabels); map.addLayer(dark); 
+        }
     }
-}
 
+    // 2. ЗАГРУЗКА JSON С АВТО-ЦВЕТАМИ
     async function loadMap() {
         try {
             const res = await fetch('data/map.json?v=' + Date.now());
@@ -163,14 +155,17 @@ function toggleLayers() {
                 },
                 style: (f) => {
                     if (f.geometry.type !== 'Point') {
-                        const rawColor = f.properties.fill || f.properties.stroke || f.properties.color || "#8b0000";
-                        L.geoJSON(f, { style: { color: rawColor, weight: 0, fillOpacity: 0.25, interactive: false } }).addTo(fillGroup);
-                        L.geoJSON(f, { style: { color: rawColor, weight: 3, fillOpacity: 0, interactive: false } }).addTo(borderGroup);
+                        // Поддержка любых цветов из Google My Maps
+                        const color = f.properties.fill || f.properties.stroke || f.properties.color || "#8b0000";
+                        // Создаем постоянную заливку
+                        L.geoJSON(f, { style: { color: color, weight: 0, fillOpacity: 0.25, interactive: false } }).addTo(fillGroup);
+                        // Создаем отключаемую границу
+                        L.geoJSON(f, { style: { color: color, weight: 3, fillOpacity: 0, interactive: false } }).addTo(borderGroup);
                     }
                 }
             });
             updateGeo();
-        } catch(e) { console.log("JSON Error"); }
+        } catch(e) { console.log("Load Error"); }
     }
 
     function updateGeo() {
@@ -178,44 +173,38 @@ function toggleLayers() {
         showBorder ? map.addLayer(borderGroup) : map.removeLayer(borderGroup);
     }
 
-    // НОВАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ТАБОВ
+    // 3. УМНЫЙ ТАБ-БАР (ЗАКРЫТИЕ ПРИ ПОВТОРНОМ КЛИКЕ)
     function toggleTab(id) {
         const sidebar = document.getElementById('sidebar');
         const btn = document.getElementById('btn-' + id);
         const page = document.getElementById('t-' + id);
 
-        // Если нажали на уже активную кнопку — скрываем сайдбар
         if (btn.classList.contains('active') && !sidebar.classList.contains('collapsed')) {
             sidebar.classList.add('collapsed');
             btn.classList.remove('active');
         } else {
-            // Иначе открываем/переключаем
             sidebar.classList.remove('collapsed');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-            
             btn.classList.add('active');
             page.classList.add('active');
         }
-        
-        // Пересчитываем размер карты после анимации
         setTimeout(() => map.invalidateSize(), 300);
     }
 
     function toggleCheck(id) { 
         const el = document.getElementById(id); 
-        el.checked = !el.checked; 
-        el.dispatchEvent(new Event('change')); 
+        el.checked = !el.checked; el.dispatchEvent(new Event('change')); 
     }
 
     function updateBrushVal(v) { document.getElementById('brush-val').innerText = v + 'px'; }
 
     function copyCard() {
         navigator.clipboard.writeText(document.getElementById('card-val').innerText.replace(/\s/g, ''));
-        alert("Номер скопирован");
+        alert("Скопировано");
     }
 
-    // РИСОВАНИЕ
+    // 4. РИСОВАНИЕ
     const canvas = document.getElementById('paint-canvas'), ctx = canvas.getContext('2d');
     let drawing = false, currentTool = 'brush', snapshot, startX, startY;
 
@@ -251,9 +240,8 @@ function toggleLayers() {
         if(currentTool === 'brush') { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); }
         else {
             ctx.putImageData(snapshot, 0, 0); ctx.beginPath();
-            if(currentTool === 'circle') {
-                ctx.arc(startX, startY, Math.sqrt((e.offsetX-startX)**2 + (e.offsetY-startY)**2), 0, Math.PI*2);
-            } else if(currentTool === 'arrow') {
+            if(currentTool === 'circle') { ctx.arc(startX, startY, Math.sqrt((e.offsetX-startX)**2 + (e.offsetY-startY)**2), 0, Math.PI*2); }
+            else if(currentTool === 'arrow') {
                 const angle = Math.atan2(e.offsetY - startY, e.offsetX - startX);
                 const s = ctx.lineWidth * 3 + 10;
                 ctx.moveTo(startX, startY); ctx.lineTo(e.offsetX, e.offsetY);
@@ -270,6 +258,3 @@ function toggleLayers() {
 </script>
 </body>
 </html>
-
-
-
