@@ -130,11 +130,18 @@
     const borderGroup = L.layerGroup().addTo(map); 
     const pointsGroup = L.layerGroup().addTo(map); 
 
-    function toggleLayers() {
-        const isSat = document.getElementById('sat-in').checked;
-        if(isSat) { map.removeLayer(dark); map.addLayer(esri); map.addLayer(labels); }
-        else { map.removeLayer(esri); map.removeLayer(labels); map.addLayer(dark); }
+   function toggleLayers() {
+    const isSat = document.getElementById('sat-in').checked;
+    if(isSat) { 
+        map.removeLayer(dark); 
+        map.addLayer(esri); 
+        map.addLayer(labels); // Вот эта строчка добавляет границы и названия
+    } else { 
+        map.removeLayer(esri); 
+        map.removeLayer(labels); // А эта убирает их при возврате на темную карту
+        map.addLayer(dark); 
     }
+}
 
     async function loadMap() {
         try {
@@ -257,4 +264,5 @@
 </script>
 </body>
 </html>
+
 
